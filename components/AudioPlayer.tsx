@@ -46,6 +46,8 @@ const AudioPlayer = () => {
     audioRef.current?.pause();
   };
 
+//  const  staticUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+
   return (
     <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-2 w-full max-w-md">
       <p className="text-lg font-semibold">🎵 Audio Player</p>
