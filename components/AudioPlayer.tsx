@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Howl } from "howler";
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -9,48 +8,47 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 };
 
-const HowlerPlayer = () => {
-  const soundRef = useRef<Howl | null>(null);
+const AudioPlayer = () => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    soundRef.current = new Howl({
-      src: [
-        "https://8oyv91ejrmxawo-8000.proxy.runpod.net/api/v1/get-music-stream/ae260a54-696f-4b05-9959-b9b15d2c2a8f/ae8ffc10-be53-4683-bbad-2515af365ac3",
-      ],
-      html5: true,
-      format: ["mp3"],
-      onload: () => {
-        const dur = soundRef.current?.duration() ?? 0;
+    if (audioRef.current) {
+      audioRef.current.addEventListener("loadedmetadata", () => {
+        const dur = audioRef.current?.duration ?? 0;
         setDuration(dur);
-      },
-    });
+      });
 
-    return () => {
-      soundRef.current?.unload();
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+      audioRef.current.addEventListener("play", () => {
+        intervalRef.current = setInterval(() => {
+          const seek = audioRef.current?.currentTime ?? 0;
+          setCurrentTime(seek);
+        }, 500);
+      });
+
+      audioRef.current.addEventListener("pause", () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      });
+
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+    }
   }, []);
 
   const handlePlay = () => {
-    soundRef.current?.play();
-
-    intervalRef.current = setInterval(() => {
-      const seek = soundRef.current?.seek() as number;
-      setCurrentTime(seek);
-    }, 500);
+    audioRef.current?.play();
   };
 
   const handlePause = () => {
-    soundRef.current?.pause();
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    audioRef.current?.pause();
   };
 
   return (
     <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-2 w-full max-w-md">
-      <p className="text-lg font-semibold">🎵 Howler Player</p>
+      <p className="text-lg font-semibold">🎵 Audio Player</p>
 
       <div className="flex items-center justify-between text-sm text-gray-700">
         <span>{formatTime(currentTime)}</span>
@@ -71,8 +69,15 @@ const HowlerPlayer = () => {
           Pause
         </button>
       </div>
+
+      <audio
+        ref={audioRef}
+        src="https://8oyv91ejrmxawo-8000.proxy.runpod.net/api/v1/get-music-stream/ae260a54-696f-4b05-9959-b9b15d2c2a8f/ae8ffc10-be53-4683-bbad-2515af365ac3"
+        preload="metadata"
+        controls
+      />
     </div>
   );
 };
 
-export default HowlerPlayer;
+export default AudioPlayer;
