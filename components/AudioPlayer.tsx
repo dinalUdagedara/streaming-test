@@ -52,7 +52,7 @@ const AudioPlayer = () => {
     <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-2 w-full max-w-md">
       <p className="text-lg font-semibold">🎵 Audio Player</p>
 
-      <div className="flex items-center justify-between text-sm text-gray-700">
+      <div className="flex items-center justify-between text-sm text-gray-200">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>
