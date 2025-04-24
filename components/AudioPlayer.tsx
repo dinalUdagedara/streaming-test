@@ -8,35 +8,49 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 };
 
+const staticUrl =
+  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+const streamingUrl =
+  "https://8oyv91ejrmxawo-8000.proxy.runpod.net/api/v1/get-music-stream/ae260a54-696f-4b05-9959-b9b15d2c2a8f/ae8ffc10-be53-4683-bbad-2515af365ac3";
+
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [useStreaming, setUseStreaming] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const source = useStreaming ? streamingUrl : staticUrl;
+
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.addEventListener("loadedmetadata", () => {
-        const dur = audioRef.current?.duration ?? 0;
-        setDuration(dur);
-      });
+    const audio = audioRef.current;
+    if (!audio) return;
 
-      audioRef.current.addEventListener("play", () => {
-        intervalRef.current = setInterval(() => {
-          const seek = audioRef.current?.currentTime ?? 0;
-          setCurrentTime(seek);
-        }, 500);
-      });
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
 
-      audioRef.current.addEventListener("pause", () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      });
+    const handlePlay = () => {
+      intervalRef.current = setInterval(() => {
+        setCurrentTime(audio.currentTime);
+      }, 500);
+    };
 
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      };
-    }
-  }, []);
+    const handlePause = () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [source]);
 
   const handlePlay = () => {
     audioRef.current?.play();
@@ -46,10 +60,26 @@ const AudioPlayer = () => {
     audioRef.current?.pause();
   };
 
-//  const  staticUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+  const toggleSource = () => {
+    const wasPlaying = !audioRef.current?.paused;
+    handlePause();
+    setCurrentTime(0);
+    setDuration(0);
+    setUseStreaming((prev) => !prev);
+
+    // Wait for state update and reload audio
+    setTimeout(() => {
+      if (audioRef.current) {
+        audioRef.current.load();
+        if (wasPlaying) {
+          audioRef.current.play();
+        }
+      }
+    }, 100);
+  };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-2 w-full max-w-md">
+    <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-3 w-full max-w-md text-white">
       <p className="text-lg font-semibold">🎵 Audio Player</p>
 
       <div className="flex items-center justify-between text-sm text-gray-200">
@@ -71,13 +101,14 @@ const AudioPlayer = () => {
           Pause
         </button>
       </div>
+      <button
+        onClick={toggleSource}
+        className="px-4 py-2 bg-blue-500 text-white rounded"
+      >
+        Switch to {useStreaming ? "Static" : "Streaming"}
+      </button>
 
-      <audio
-        ref={audioRef}
-        src="https://8oyv91ejrmxawo-8000.proxy.runpod.net/api/v1/get-music-stream/ae260a54-696f-4b05-9959-b9b15d2c2a8f/ae8ffc10-be53-4683-bbad-2515af365ac3"
-        preload="metadata"
-        controls
-      />
+      <audio ref={audioRef} src={source} preload="metadata" controls />
     </div>
   );
 };
